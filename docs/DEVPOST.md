@@ -20,7 +20,7 @@ Next.js, React, TypeScript, JavaScript, HTML5, CSS3, SVG, Node.js, graph algorit
 
 - Live demo: https://the-cortex-technoviz.vercel.app/ 
 - GitHub repository: https://github.com/shannon-aurelia/the-cortex-technoviz
-- Video: (Youtube Video goes here)
+- Video: https://youtu.be/b4GV4QE-LOQ 
 
 ## Submission checklist
 
@@ -32,7 +32,7 @@ Next.js, React, TypeScript, JavaScript, HTML5, CSS3, SVG, Node.js, graph algorit
 - [x] Responsive live application
 - [x] Public GitHub repository URL
 - [x] Final live deployment URL
-- [ ] Three to five minute demo video
+- [x] Three to five minute demo video
 - [x] Three or more project screenshots
 
 ## Recommended media sequence
