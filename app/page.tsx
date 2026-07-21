@@ -158,7 +158,7 @@ export default function Home() {
         <Architecture onEnter={() => setView("lab")}/>
       )}
 
-      <footer id="open-source"><div className="brand"><span className="brand-orbit"><b/></span><span>THE CORTEX</span></div><p>Open-source infrastructure for thought preservation and inspectable synthetic cognition.</p><a href="https://github.com" target="_blank" rel="noreferrer">VIEW SOURCE ↗</a></footer>
+      <footer id="open-source"><div className="brand"><span className="brand-orbit"><b/></span><span>THE CORTEX</span></div><p>Open-source infrastructure for thought preservation and inspectable synthetic cognition.</p><a href="https://github.com/shannon-aurelia/the-cortex-technoviz" target="_blank" rel="noreferrer">VIEW SOURCE ↗</a></footer>
     </main>
   );
 }

@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "The Cortex | Capture a thought. Watch it grow.",
   description:
-    "An interactive algorithmic laboratory that captures fragmented thoughts and transforms them into an evolving, searchable digital mind.",
+    "An interactive algorithmic laboratory that captures fragmented thoughts and transforms them into an evolving, searchable digital mind. Made by Shannon Aurelia",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

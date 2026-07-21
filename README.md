@@ -54,7 +54,7 @@ where \(S\) is semantic similarity, \(K\) represents shared concepts, and \(T\) 
 Requirements: Node.js 20.9 or newer.
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/shannon-aurelia/the-cortex-technoviz
 cd the-cortex
 npm install
 npm run dev
