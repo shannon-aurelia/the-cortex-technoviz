@@ -20,6 +20,7 @@ const seedThoughts: Thought[] = [
 ];
 
 const pipeline = ["Capture", "Interpret", "Remember", "Connect", "Reason", "Visualize"];
+const STORAGE_KEY = "the-cortex-thoughts-v1";
 const nodePositions = [
   [49, 14], [36, 18], [61, 21], [27, 28], [45, 28], [70, 31], [20, 41], [35, 42], [55, 39], [78, 43],
   [25, 55], [43, 52], [62, 53], [82, 57], [32, 67], [51, 65], [68, 68], [42, 78], [58, 80], [72, 77],
@@ -27,13 +28,15 @@ const nodePositions = [
 const edges = [[0,1],[0,2],[1,3],[1,4],[2,4],[2,5],[3,6],[3,7],[4,7],[4,8],[5,8],[5,9],[6,10],[7,10],[7,11],[8,11],[8,12],[9,12],[9,13],[10,14],[11,14],[11,15],[12,15],[12,16],[13,16],[14,17],[15,17],[15,18],[16,18],[16,19],[17,18],[18,19],[4,11],[7,15],[8,16],[10,17],[3,11],[5,12]];
 
 function extractConcepts(text: string) {
-  const stop = new Set(["about", "after", "again", "being", "could", "from", "have", "into", "just", "more", "that", "their", "there", "these", "they", "this", "through", "what", "when", "where", "which", "with", "would", "your"]);
+  const stop = new Set(["about", "after", "again", "before", "being", "between", "could", "from", "have", "into", "just", "more", "something", "that", "their", "there", "these", "they", "this", "through", "what", "when", "where", "which", "with", "would", "your"]);
   return [...new Set(text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => word.length > 4 && !stop.has(word)))].slice(0, 4);
 }
 
 function connectionScore(a: Thought, b: Thought) {
-  const shared = a.concepts.filter((concept) => b.text.toLowerCase().includes(concept) || b.concepts.includes(concept)).length;
-  return Math.min(96, 48 + shared * 18 + (a.id * 7 + b.id * 3) % 18);
+  const sharedConcepts = a.concepts.filter((concept) => b.text.toLowerCase().includes(concept) || b.concepts.includes(concept)).length;
+  const wordsA = new Set(a.text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => word.length > 4));
+  const sharedWords = b.text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => wordsA.has(word)).length;
+  return Math.min(96, 42 + sharedConcepts * 18 + Math.min(6, sharedWords) * 6);
 }
 
 export default function Home() {
@@ -45,9 +48,31 @@ export default function Home() {
   const [view, setView] = useState<"lab" | "architecture">("lab");
   const [processing, setProcessing] = useState(false);
   const [toast, setToast] = useState("SYSTEM READY");
+  const [storageReady, setStorageReady] = useState(false);
 
   const filtered = useMemo(() => thoughts.filter((thought) => `${thought.text} ${thought.concepts.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [thoughts, query]);
   const related = useMemo(() => thoughts.filter((thought) => thought.id !== selected.id).map((thought) => ({ ...thought, score: connectionScore(selected, thought) })).sort((a, b) => b.score - a.score).slice(0, 3), [thoughts, selected]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored) as Thought[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setThoughts(parsed);
+          setSelected(parsed[0]);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(STORAGE_KEY);
+    } finally {
+      setStorageReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (storageReady) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(thoughts));
+  }, [thoughts, storageReady]);
 
   useEffect(() => {
     if (!processing) return;
@@ -59,7 +84,7 @@ export default function Home() {
       const concepts = extractConcepts(input);
       const thought: Thought = {
         id: Date.now(), text: input.trim(), concepts: concepts.length ? concepts : ["unclassified"],
-        tone: input.includes("?") ? "question" : "observation", created: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), strength: 74 + Math.floor(Math.random() * 20),
+        tone: input.includes("?") ? "question" : "observation", created: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }), strength: Math.min(96, 68 + Math.min(4, concepts.length) * 6 + (input.includes("?") ? 2 : 4)),
       };
       setThoughts((items) => [thought, ...items]);
       setSelected(thought);
@@ -103,7 +128,7 @@ export default function Home() {
               <form className="capture" onSubmit={capture}>
                 <label htmlFor="thought-input">What are you thinking?</label>
                 <textarea id="thought-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Type an idea, question, observation, or unfinished thought…" maxLength={280}/>
-                <div><span>{input.length}/280 · private session</span><button disabled={!input.trim() || processing}>{processing ? "THINKING…" : "CAPTURE THOUGHT →"}</button></div>
+                <div><span>{input.length}/280 · saved locally</span><button disabled={!input.trim() || processing}>{processing ? "THINKING…" : "CAPTURE THOUGHT →"}</button></div>
               </form>
             </div>
 
@@ -146,11 +171,11 @@ export default function Home() {
 
             <aside className="telemetry panel">
               <div className="panel-title"><div><small>SYSTEM TELEMETRY</small><h3>Mind state</h3></div></div>
-              <div className="metric"><span>MEMORY NODES</span><strong>{thoughts.length.toLocaleString()}</strong><small>+1 this session</small></div>
+              <div className="metric"><span>MEMORY NODES</span><strong>{thoughts.length.toLocaleString()}</strong><small>persistent local memory</small></div>
               <div className="metric"><span>CONNECTIONS</span><strong>{(thoughts.length * 3 + 7).toLocaleString()}</strong><small>graph density 0.72</small></div>
               <div className="metric"><span>ACTIVE CONCEPTS</span><strong>{new Set(thoughts.flatMap(t => t.concepts)).size}</strong><small>4 emerging themes</small></div>
               <div className="wave"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
-              <div className="system-note"><span>●</span><p><b>Cortex is learning</b>Your mind map evolves with every captured thought.</p></div>
+              <div className="system-note"><span>●</span><p><b>Cortex is mapping</b>Your mind map evolves with every captured thought.</p></div>
             </aside>
           </section>
         </>
