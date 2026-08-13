@@ -166,7 +166,7 @@ export default function Home() {
               <div className="panel-title"><div><small>THOUGHT INSPECTOR</small><h3>Connection analysis</h3></div><span className="confidence">{selected.strength}% signal</span></div>
               <article className="selected-thought"><small>ACTIVE THOUGHT / {selected.tone.toUpperCase()}</small><blockquote>“{selected.text}”</blockquote><div>{selected.concepts.map((concept) => <span key={concept}>#{concept}</span>)}</div></article>
               <h4>Strongest memory connections</h4>
-              <div className="connections">{related.map((thought) => <button key={thought.id} onClick={() => setSelected(thought)}><div className="score"><strong>{thought.score}%</strong><i style={{width:`${thought.score}%`}}/></div><p>{thought.text}</p><small>Connected through semantic meaning and shared conceptual context</small></button>)}</div>
+              <div className="connections">{related.map((thought) => <button key={thought.id} onClick={() => setSelected(thought)}><div className="score"><strong>{thought.score}%</strong><i style={{width:`${thought.score}%`}}/></div><p>{thought.text}</p><small>Connected through shared concepts and meaningful word overlap</small></button>)}</div>
             </section>
 
             <aside className="telemetry panel">
