@@ -19,13 +19,12 @@ const seedThoughts: Thought[] = [
   { id: 5, text: "Build computational minds that people can inspect and control.", concepts: ["control", "synthetic minds", "systems"], tone: "mission", created: "15:08", strength: 90 },
 ];
 
-const pipeline = ["Capture", "Interpret", "Remember", "Connect", "Reason", "Visualize"];
+const pipeline = ["Capture", "Extract", "Store", "Score", "Rank", "Visualize"];
 const STORAGE_KEY = "the-cortex-thoughts-v1";
 const nodePositions = [
   [49, 14], [36, 18], [61, 21], [27, 28], [45, 28], [70, 31], [20, 41], [35, 42], [55, 39], [78, 43],
   [25, 55], [43, 52], [62, 53], [82, 57], [32, 67], [51, 65], [68, 68], [42, 78], [58, 80], [72, 77],
 ];
-const edges = [[0,1],[0,2],[1,3],[1,4],[2,4],[2,5],[3,6],[3,7],[4,7],[4,8],[5,8],[5,9],[6,10],[7,10],[7,11],[8,11],[8,12],[9,12],[9,13],[10,14],[11,14],[11,15],[12,15],[12,16],[13,16],[14,17],[15,17],[15,18],[16,18],[16,19],[17,18],[18,19],[4,11],[7,15],[8,16],[10,17],[3,11],[5,12]];
 
 function extractConcepts(text: string) {
   const stop = new Set(["about", "after", "again", "before", "being", "between", "could", "from", "have", "into", "just", "more", "something", "that", "their", "there", "these", "they", "this", "through", "what", "when", "where", "which", "with", "would", "your"]);
@@ -35,8 +34,9 @@ function extractConcepts(text: string) {
 function connectionScore(a: Thought, b: Thought) {
   const sharedConcepts = a.concepts.filter((concept) => b.text.toLowerCase().includes(concept) || b.concepts.includes(concept)).length;
   const wordsA = new Set(a.text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => word.length > 4));
-  const sharedWords = b.text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => wordsA.has(word)).length;
-  return Math.min(96, 42 + sharedConcepts * 18 + Math.min(6, sharedWords) * 6);
+  const sharedWords = new Set(b.text.toLowerCase().replace(/[^a-z0-9\s]/g, "").split(/\s+/).filter((word) => wordsA.has(word))).size;
+  if (sharedConcepts === 0 && sharedWords === 0) return 0;
+  return Math.min(96, 20 + sharedConcepts * 24 + Math.min(4, sharedWords) * 12);
 }
 
 export default function Home() {
@@ -51,23 +51,44 @@ export default function Home() {
   const [storageReady, setStorageReady] = useState(false);
 
   const filtered = useMemo(() => thoughts.filter((thought) => `${thought.text} ${thought.concepts.join(" ")}`.toLowerCase().includes(query.toLowerCase())), [thoughts, query]);
-  const related = useMemo(() => thoughts.filter((thought) => thought.id !== selected.id).map((thought) => ({ ...thought, score: connectionScore(selected, thought) })).sort((a, b) => b.score - a.score).slice(0, 3), [thoughts, selected]);
+  const related = useMemo(() => thoughts.filter((thought) => thought.id !== selected.id).map((thought) => ({ ...thought, score: connectionScore(selected, thought) })).filter((thought) => thought.score > 0).sort((a, b) => b.score - a.score).slice(0, 3), [thoughts, selected]);
+  const graphThoughts = useMemo(() => thoughts.slice(0, nodePositions.length), [thoughts]);
+  const graphEdges = useMemo(() => {
+    const links: { from: number; to: number; score: number }[] = [];
+    for (let from = 0; from < graphThoughts.length; from += 1) for (let to = from + 1; to < graphThoughts.length; to += 1) {
+      const score = connectionScore(graphThoughts[from], graphThoughts[to]);
+      if (score > 0) links.push({ from, to, score });
+    }
+    return links.sort((a, b) => b.score - a.score).slice(0, 32);
+  }, [graphThoughts]);
+  const allConnections = useMemo(() => {
+    let count = 0;
+    for (let from = 0; from < thoughts.length; from += 1) for (let to = from + 1; to < thoughts.length; to += 1) if (connectionScore(thoughts[from], thoughts[to]) > 0) count += 1;
+    return count;
+  }, [thoughts]);
+  const possibleConnections = thoughts.length > 1 ? thoughts.length * (thoughts.length - 1) / 2 : 0;
+  const graphDensity = possibleConnections ? allConnections / possibleConnections : 0;
+  const conceptCounts = useMemo(() => thoughts.flatMap((thought) => thought.concepts).reduce<Record<string, number>>((counts, concept) => ({ ...counts, [concept]: (counts[concept] ?? 0) + 1 }), {}), [thoughts]);
+  const emergingThemes = Object.values(conceptCounts).filter((count) => count > 1).length;
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as Thought[];
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setThoughts(parsed);
-          setSelected(parsed[0]);
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Thought[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setThoughts(parsed);
+            setSelected(parsed[0]);
+          }
         }
+      } catch {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } finally {
+        setStorageReady(true);
       }
-    } catch {
-      window.localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setStorageReady(true);
-    }
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -127,7 +148,7 @@ export default function Home() {
               <p>Thoughts disappear in seconds. The Cortex captures fragmented thinking and transforms it into an evolving, searchable digital mind.</p>
               <form className="capture" onSubmit={capture}>
                 <label htmlFor="thought-input">What are you thinking?</label>
-                <textarea id="thought-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Type an idea, question, observation, or unfinished thought…" maxLength={280}/>
+                <textarea id="thought-input" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Type an idea, question, observation, or unfinished thought…" maxLength={280} disabled={processing}/>
                 <div><span>{input.length}/280 · saved locally</span><button disabled={!input.trim() || processing}>{processing ? "THINKING…" : "CAPTURE THOUGHT →"}</button></div>
               </form>
             </div>
@@ -138,8 +159,8 @@ export default function Home() {
                 <div className="brain-glow"/>
                 <svg viewBox="0 0 100 100" role="img" aria-label="Connected thought graph">
                   <defs><linearGradient id="edge" x1="0" y1="0" x2="1" y2="1"><stop stopColor="#4debff"/><stop offset=".55" stopColor="#775cff"/><stop offset="1" stopColor="#ff4fd8"/></linearGradient></defs>
-                  {edges.map(([from, to], index) => <line key={index} x1={nodePositions[from][0]} y1={nodePositions[from][1]} x2={nodePositions[to][0]} y2={nodePositions[to][1]} className={index % 5 === activeStage ? "signal" : ""}/>)}
-                  {nodePositions.map(([x,y], index) => <circle key={index} cx={x} cy={y} r={index % 4 === 0 ? 1.55 : 1.05} className={index % 6 <= activeStage ? "lit" : ""}/>)}
+                  {graphEdges.map(({from, to}, index) => <line key={`${from}-${to}`} x1={nodePositions[from][0]} y1={nodePositions[from][1]} x2={nodePositions[to][0]} y2={nodePositions[to][1]} className={index % 6 === activeStage || graphThoughts[from].id === selected.id || graphThoughts[to].id === selected.id ? "signal" : ""}/>)}
+                  {graphThoughts.map((thought, index) => <circle key={thought.id} cx={nodePositions[index][0]} cy={nodePositions[index][1]} r={thought.id === selected.id ? 2 : index % 4 === 0 ? 1.55 : 1.05} className={thought.id === selected.id || index % 6 <= activeStage ? "lit selected-node" : ""} onClick={() => setSelected(thought)}/>)}
                 </svg>
               </div>
               <div className="orbit orbit-one"><span>MEMORY</span></div>
@@ -166,14 +187,14 @@ export default function Home() {
               <div className="panel-title"><div><small>THOUGHT INSPECTOR</small><h3>Connection analysis</h3></div><span className="confidence">{selected.strength}% signal</span></div>
               <article className="selected-thought"><small>ACTIVE THOUGHT / {selected.tone.toUpperCase()}</small><blockquote>“{selected.text}”</blockquote><div>{selected.concepts.map((concept) => <span key={concept}>#{concept}</span>)}</div></article>
               <h4>Strongest memory connections</h4>
-              <div className="connections">{related.map((thought) => <button key={thought.id} onClick={() => setSelected(thought)}><div className="score"><strong>{thought.score}%</strong><i style={{width:`${thought.score}%`}}/></div><p>{thought.text}</p><small>Connected through shared concepts and meaningful word overlap</small></button>)}</div>
+              <div className="connections">{related.length ? related.map((thought) => <button key={thought.id} onClick={() => setSelected(thought)}><div className="score"><strong>{thought.score}%</strong><i style={{width:`${thought.score}%`}}/></div><p>{thought.text}</p><small>Connected through shared concepts and meaningful word overlap</small></button>) : <p className="empty-state">No meaningful overlap yet. Add a thought with a related concept to create this node’s first connection.</p>}</div>
             </section>
 
             <aside className="telemetry panel">
               <div className="panel-title"><div><small>SYSTEM TELEMETRY</small><h3>Mind state</h3></div></div>
               <div className="metric"><span>MEMORY NODES</span><strong>{thoughts.length.toLocaleString()}</strong><small>persistent local memory</small></div>
-              <div className="metric"><span>CONNECTIONS</span><strong>{(thoughts.length * 3 + 7).toLocaleString()}</strong><small>graph density 0.72</small></div>
-              <div className="metric"><span>ACTIVE CONCEPTS</span><strong>{new Set(thoughts.flatMap(t => t.concepts)).size}</strong><small>4 emerging themes</small></div>
+              <div className="metric"><span>CONNECTIONS</span><strong>{allConnections.toLocaleString()}</strong><small>graph density {graphDensity.toFixed(2)}</small></div>
+              <div className="metric"><span>ACTIVE CONCEPTS</span><strong>{Object.keys(conceptCounts).length}</strong><small>{emergingThemes} recurring themes</small></div>
               <div className="wave"><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/><i/></div>
               <div className="system-note"><span>●</span><p><b>Cortex is mapping</b>Your mind map evolves with every captured thought.</p></div>
             </aside>
@@ -189,5 +210,5 @@ export default function Home() {
 }
 
 function Architecture({ onEnter }: { onEnter: () => void }) {
-  return <section className="architecture-view"><div className="eyebrow"><span>◇</span> OPEN, MODULAR, EXPLAINABLE</div><h1>Inside the <em>Cortex.</em></h1><p className="architecture-intro">A six-stage cognitive pipeline turns a fleeting thought into structured, connected, and retrievable knowledge. Every transformation remains visible to the user.</p><div className="architecture-grid">{pipeline.map((stage,index) => <article key={stage}><span>{String(index+1).padStart(2,"0")}</span><div className="architecture-icon">{["⌁","◇","◉","⌘","✦","◎"][index]}</div><h2>{stage}</h2><p>{["Accept natural-language thoughts at the moment they occur.","Extract concepts, intent, tone, and useful semantic signals.","Store each thought as a persistent, searchable memory node.","Score relationships using meaning, concepts, and context.","Surface patterns, questions, and paths worth developing.","Render the evolving mind as an inspectable knowledge graph."][index]}</p></article>)}</div><div className="formula"><small>CONNECTION MODEL</small><code>wᵢⱼ = αSᵢⱼ + βKᵢⱼ + γTᵢⱼ</code><p>Semantic similarity + shared concepts + temporal context</p></div><button className="enter-button" onClick={onEnter}>ENTER THE LABORATORY →</button></section>;
+  return <section className="architecture-view"><div className="eyebrow"><span>◇</span> OPEN, MODULAR, EXPLAINABLE</div><h1>Inside the <em>Cortex.</em></h1><p className="architecture-intro">A six-stage cognitive pipeline turns a fleeting thought into structured, connected, and retrievable knowledge. Every transformation remains visible to the user.</p><div className="architecture-grid">{pipeline.map((stage,index) => <article key={stage}><span>{String(index+1).padStart(2,"0")}</span><div className="architecture-icon">{["⌁","◇","◉","⌘","✦","◎"][index]}</div><h2>{stage}</h2><p>{["Accept a natural-language thought at the moment it occurs.","Extract significant words after normalization and stop-word removal.","Store the thought as a persistent, searchable local memory node.","Calculate connection weight from shared concepts and meaningful words.","Order the connected memories by their reproducible overlap score.","Render the stored nodes and computed links as an inspectable graph."][index]}</p></article>)}</div><div className="formula"><small>IMPLEMENTED CONNECTION MODEL</small><code>wᵢⱼ = 20 + 24Kᵢⱼ + 12Wᵢⱼ</code><p>Shared extracted concepts (K) + meaningful word overlap (W), capped at 96</p></div><button className="enter-button" onClick={onEnter}>ENTER THE LABORATORY →</button></section>;
 }

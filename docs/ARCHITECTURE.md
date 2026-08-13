@@ -33,15 +33,13 @@ type Thought = {
 The intended connection model is:
 
 $$
-w_{ij} = \alpha S_{ij} + \beta K_{ij} + \gamma T_{ij}
+w_{ij} = 20 + 24K_{ij} + 12W_{ij}
 $$
 
-- \(S_{ij}\): semantic similarity between thoughts
-- \(K_{ij}\): shared concepts and keywords
-- \(T_{ij}\): temporal context
-- \(\alpha, \beta, \gamma\): configurable weighting factors
+- \(K_{ij}\): number of shared extracted concepts
+- \(W_{ij}\): number of shared meaningful words, capped at four
 
-The current offline implementation scores extracted concept overlap and meaningful shared-word overlap. The calculation is deterministic, so the same pair of thoughts always produces the same result. This keeps the public demo fast, reproducible, private, and free of credentials.
+The current offline implementation assigns no link when both overlap values are zero and caps a nonzero connection at 96. The calculation is deterministic, so the same pair of thoughts always produces the same result. This keeps the public demo fast, reproducible, private, and free of credentials.
 
 ## Interface architecture
 
