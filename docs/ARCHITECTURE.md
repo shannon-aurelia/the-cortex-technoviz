@@ -41,7 +41,7 @@ $$
 - \(T_{ij}\): temporal context
 - \(\alpha, \beta, \gamma\): configurable weighting factors
 
-The current offline implementation approximates this score through extracted concept overlap plus deterministic contextual variation. This keeps the public demo fast, reproducible, private, and free of credentials.
+The current offline implementation scores extracted concept overlap and meaningful shared-word overlap. The calculation is deterministic, so the same pair of thoughts always produces the same result. This keeps the public demo fast, reproducible, private, and free of credentials.
 
 ## Interface architecture
 
@@ -57,14 +57,14 @@ The interfaces can be replaced independently:
 | Prototype module | Production adapter |
 | --- | --- |
 | Keyword extraction | NLP pipeline or language model |
-| In-memory thoughts | Encrypted local store or PostgreSQL |
+| Browser local storage | Encrypted cross-device store or PostgreSQL |
 | Lightweight scoring | Embeddings and vector similarity |
 | Array relationships | Neo4j or another graph database |
-| Session-only state | Authenticated cross-device workspace |
+| Local browser persistence | Authenticated cross-device workspace |
 
 ## Design principles
 
-1. **Human thought first:** AI supports the user's thinking instead of replacing it.
+1. **Human thought first:** algorithms support the user's thinking instead of replacing it.
 2. **Explainability:** connections must show why they exist.
 3. **Modularity:** every cognitive stage can be inspected or replaced.
 4. **Privacy:** personal thoughts require explicit storage and model controls.
