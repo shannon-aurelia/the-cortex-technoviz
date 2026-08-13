@@ -2,6 +2,8 @@
 
 > Capture a thought. Watch it grow.
 
+[**Try the live prototype →**](https://the-cortex-technoviz.vercel.app)
+
 Thoughts disappear in seconds, taking ideas, insights, and connections with them. **The Cortex** captures fragmented thinking and transforms it into an evolving, searchable digital mind.
 
 The Cortex is a browser-based algorithmic laboratory for thought preservation and inspectable synthetic cognition. A user enters an idea, question, or observation and watches it move through a six-stage cognitive pipeline. The prototype extracts concepts, creates a memory node, scores related ideas, and exposes the resulting connections in a visual mind interface.
@@ -15,7 +17,8 @@ Most note-taking tools preserve text but lose context. Notes become isolated pag
 - Capture ideas, questions, observations, and unfinished thoughts
 - Watch every thought move through a live six-stage cognitive pipeline
 - Extract meaningful concepts without a remote API or secret key
-- Store thoughts as interactive memory nodes
+- Persist captured thoughts locally in the browser
+- Explore thoughts as interactive memory nodes
 - Score and explain relationships between memories
 - Search the memory archive by text or concept
 - Inspect signal strength, graph connections, and active concepts
@@ -27,7 +30,7 @@ Most note-taking tools preserve text but lose context. Notes become isolated pag
 
 1. **Capture** receives natural-language input.
 2. **Interpret** extracts concepts, intent, and tone.
-3. **Remember** creates a persistent memory node in the session.
+3. **Remember** creates a persistent memory node in local browser storage.
 4. **Connect** compares the new node with existing memories.
 5. **Reason** ranks potentially useful relationships.
 6. **Visualize** updates the interactive mind and telemetry.
@@ -46,8 +49,8 @@ where \(S\) is semantic similarity, \(K\) represents shared concepts, and \(T\) 
 - React 19
 - TypeScript
 - CSS and SVG visualization
-- Vinext and Vite
-- Cloudflare Workers-compatible production build
+- Browser local storage
+- Vercel deployment and analytics
 
 ## Run locally
 
@@ -55,7 +58,7 @@ Requirements: Node.js 20.9 or newer.
 
 ```bash
 git clone https://github.com/shannon-aurelia/the-cortex-technoviz
-cd the-cortex
+cd the-cortex-technoviz
 npm install
 npm run dev
 ```
@@ -91,16 +94,19 @@ docs/
   DEMO_SCRIPT.md    Timed 3–5 minute video narration
   DEVPOST.md        Submission-ready project story and checklist
 public/             Static project assets
-tests/              Rendered output smoke tests
 ```
 
 ## Privacy
 
-The hackathon prototype processes thoughts locally in the current browser session. It does not transmit entries to an external AI service or database. Refreshing the page resets the prototype data.
+The prototype processes and stores captured thoughts locally in the user’s browser. It does not transmit thought content to an external AI service or database. Stored thoughts remain available after refresh on the same browser and device.
+
+## Implementation boundaries
+
+This release is an explainable, local-first prototype. Concept extraction uses deterministic text preprocessing, and connection scores use shared concepts and meaningful word overlap. It does not claim to run a trained language model or full semantic embedding system. This keeps the demonstration reproducible, private, and usable without credentials.
 
 ## Future scope
 
-- Local-first persistent encrypted storage
+- Optional encrypted cross-device synchronization
 - Sentence embeddings and semantic vector search
 - A graph database for long-term memory relationships
 - Voice, document, image, and link capture
